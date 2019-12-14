@@ -1,4 +1,4 @@
-multi.adaboost <- function(formula,data,boos=TRUE,mfinal=100,coeflearn="Zhu",priors,cost.matrix,maxd=1){  
+multi.adaboost <- function(formula,data,boos=TRUE,mfinal=100,coeflearn="Zhu",priors,cost.matrix,depth=1){  
   if (!(as.character(coeflearn) %in% c("Freund","Breiman","Zhu"))) {
     stop("coeflearn must be 'Freund','Breiman' or 'Zhu' ")
   }
@@ -13,8 +13,7 @@ multi.adaboost <- function(formula,data,boos=TRUE,mfinal=100,coeflearn="Zhu",pri
   arboles <- list()
   pond <- rep(0,mfinal)
   pred <- data.frame(rep(0,n))
-  arboles[[1]] <- rpart(formula,data=data[,-1],control=rpart.control(minsplit=1,
-                                                                            cp=-1,maxdepth=30))
+  arboles[[1]] <- rpart(formula,data=data[,-1],control=rpart.control(minsplit=1,cp=-1,maxdepth=30))
   nvar <- dim(varImp(arboles[[1]],surrogates=FALSE,competes=FALSE))[1]
   imp <- array(0,c(mfinal,nvar))
   for (m in 1:mfinal) {
@@ -23,7 +22,7 @@ multi.adaboost <- function(formula,data,boos=TRUE,mfinal=100,coeflearn="Zhu",pri
       while (k == 1) {
         boostrap <- sample(1:n,replace=TRUE,prob=pesos)
         fit <- rpart(formula,data=data[boostrap,-1],parms=list(prior=priors,loss=cost.matrix),
-                     control=rpart.control(maxdepth=maxd))
+                     control=rpart.control(maxdepth=depth))
         k <- length(fit$frame$var)
       }
       flearn <- predict(fit,newdata=data[,-1],type="class")
@@ -33,7 +32,7 @@ multi.adaboost <- function(formula,data,boos=TRUE,mfinal=100,coeflearn="Zhu",pri
     if (boos == FALSE) {
       w <<- pesos
       fit <- rpart(formula=formula,data=data[,-1],
-                   weights=w,parms=list(prior=priors,loss=cost.matrix),control=rpart.control(maxdepth=maxd))
+                   weights=w,parms=list(prior=priors,loss=cost.matrix),control=rpart.control(maxdepth=depth))
       flearn <- predict(fit,data=data[,-1],type="class")
       ind <- as.numeric(vardep != flearn)
       err <- sum(pesos * ind)
